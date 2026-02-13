@@ -16,8 +16,16 @@ const wss = new WebSocketServer({ server });
 let esp32Socket = null;
 const browsers = new Set();
 
+// Funzione Heartbeat
+function heartbeat() {
+  this.isAlive = true;
+}
+
 wss.on('connection', (ws, req) => {
     console.log('Nuova connessione WebSocket');
+    
+    ws.isAlive = true;
+    ws.on('pong', heartbeat);
 
     ws.on('message', (message) => {
         try {
@@ -77,6 +85,20 @@ wss.on('connection', (ws, req) => {
     ws.on('error', (err) => {
         console.error("Errore WebSocket:", err);
     });
+});
+
+// Intervallo Ping/Pong per mantenere vive le connessioni (ogni 30s)
+const interval = setInterval(function ping() {
+  wss.clients.forEach(function each(ws) {
+    if (ws.isAlive === false) return ws.terminate();
+
+    ws.isAlive = false;
+    ws.ping();
+  });
+}, 30000);
+
+wss.on('close', function close() {
+  clearInterval(interval);
 });
 
 server.listen(PORT, () => {
