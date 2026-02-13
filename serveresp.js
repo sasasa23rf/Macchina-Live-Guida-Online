@@ -29,6 +29,12 @@ wss.on('connection', (ws, req) => {
 
     ws.on('message', (message) => {
         try {
+            // Gestione Heartbeat manuale (se il client manda "ping" testuale)
+            if (message.toString() === 'ping') {
+                ws.send('pong');
+                return;
+            }
+
             const msgStr = message.toString();
             console.log("Messaggio ricevuto:", msgStr);
 
@@ -38,6 +44,11 @@ wss.on('connection', (ws, req) => {
             // 1. IDENTIFICAZIONE
             if (data.type === 'identify') {
                 if (data.client === 'esp32') {
+                    // Chiudi eventuale vecchia connessione fantasma
+                    if (esp32Socket && esp32Socket !== ws && esp32Socket.readyState === 1) {
+                         console.log("Chiudo vecchia connessione ESP32");
+                         esp32Socket.terminate();
+                    }
                     esp32Socket = ws;
                     console.log("✅ ESP32 Identificato e registrato");
                 } else if (data.client === 'browser') {
