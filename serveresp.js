@@ -11,8 +11,9 @@ const io = new Server(server, {
         origin: "*",
         methods: ["GET", "POST"]
     },
-    pingInterval: 25000,
-    pingTimeout: 60000
+    transports: ['websocket', 'polling'], // Supportiamo entrambi
+    pingInterval: 10000, // Ping più frequente (10s)
+    pingTimeout: 5000    // Timeout più breve per rilevare cadute (5s)
 });
 
 const PORT = process.env.PORT || 4000; // Usiamo la porta 4000 per non andare in conflitto con l'altro server
@@ -45,8 +46,8 @@ io.on('connection', (socket) => {
         io.to('browser').emit('esp_log', message);
     });
 
-    socket.on('disconnect', () => {
-        console.log('Client disconnesso:', socket.id);
+    socket.on('disconnect', (reason) => {
+        console.log(`Client disconnesso: ${socket.id} - Motivo: ${reason}`);
     });
 });
 
