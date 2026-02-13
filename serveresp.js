@@ -10,7 +10,9 @@ const io = new Server(server, {
     cors: {
         origin: "*",
         methods: ["GET", "POST"]
-    }
+    },
+    pingInterval: 25000,
+    pingTimeout: 60000
 });
 
 const PORT = process.env.PORT || 4000; // Usiamo la porta 4000 per non andare in conflitto con l'altro server
