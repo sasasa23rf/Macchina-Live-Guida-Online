@@ -1,56 +1,84 @@
 const express = require('express');
+const { WebSocketServer } = require('ws');
 const http = require('http');
-const { Server } = require("socket.io");
 
 const app = express();
-const server = http.createServer(app);
+const PORT = process.env.PORT || 4000;
 
-// Configurazione Socket.IO con CORS abilitato per accettare connessioni da ovunque
-const io = new Server(server, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
-    },
-    transports: ['websocket', 'polling'], // Supportiamo entrambi
-    pingInterval: 10000, // Ping più frequente (10s)
-    pingTimeout: 5000    // Timeout più breve per rilevare cadute (5s)
-});
-
-const PORT = process.env.PORT || 4000; // Usiamo la porta 4000 per non andare in conflitto con l'altro server
-
-// Rotta base per verificare che il server sia attivo
+// Serve una risposta base per health check HTTP
 app.get('/', (req, res) => {
-    res.send('Server ESP32 Bridge Attivo!');
+    res.send('Server ESP32 Bridge (WebSocket) Attivo!');
 });
 
-io.on('connection', (socket) => {
-    console.log('Nuovo dispositivo connesso:', socket.id);
+const server = http.createServer(app);
+const wss = new WebSocketServer({ server });
 
-    // Identificazione: Il client può presentarsi come "esp32" o "browser"
-    socket.on('identify', (type) => {
-        socket.join(type); // "esp32" o "browser"
-        console.log(`Client ${socket.id} identificato come: ${type}`);
+let esp32Socket = null;
+const browsers = new Set();
+
+wss.on('connection', (ws, req) => {
+    console.log('Nuova connessione WebSocket');
+
+    ws.on('message', (message) => {
+        try {
+            const msgStr = message.toString();
+            console.log("Messaggio ricevuto:", msgStr);
+
+            // Parsing JSON
+            const data = JSON.parse(msgStr);
+
+            // 1. IDENTIFICAZIONE
+            if (data.type === 'identify') {
+                if (data.client === 'esp32') {
+                    esp32Socket = ws;
+                    console.log("✅ ESP32 Identificato e registrato");
+                } else if (data.client === 'browser') {
+                    browsers.add(ws);
+                    console.log("✅ Browser Identificato e registrato");
+                }
+            }
+            
+            // 2. COMANDO DA BROWSER -> ESP32
+            else if (data.type === 'command') {
+                if (esp32Socket && esp32Socket.readyState === 1) { // 1 = OPEN
+                    console.log("Inoltro comando a ESP32:", data.payload);
+                    esp32Socket.send(JSON.stringify(data.payload));
+                } else {
+                    console.log("⚠️ ESP32 non connesso, impossibile inviare comando");
+                }
+            }
+
+            // 3. LOG/RISPOSTA DA ESP32 -> BROWSER
+            else if (data.type === 'log') {
+                console.log("Log da ESP32:", data.payload);
+                const logMsg = JSON.stringify({ type: 'esp_log', message: data.payload });
+                browsers.forEach(client => {
+                    if (client.readyState === 1) {
+                        client.send(logMsg);
+                    }
+                });
+            }
+
+        } catch (e) {
+            console.error("Errore parsing messaggio:", e);
+        }
     });
 
-    // 1. COMANDI DA BROWSER A ESP32
-    // Il browser emette 'send_command', noi lo giriamo alla room 'esp32'
-    socket.on('send_command', (commandData) => {
-        console.log('Comando ricevuto dal browser:', commandData);
-        io.to('esp32').emit('command', commandData);
+    ws.on('close', () => {
+        if (ws === esp32Socket) {
+            console.log('❌ ESP32 Disconnesso');
+            esp32Socket = null;
+        } else if (browsers.has(ws)) {
+            console.log('Browser Disconnesso');
+            browsers.delete(ws);
+        }
     });
 
-    // 2. RISPOSTE/LOG DA ESP32 A BROWSER
-    // L'ESP32 emette 'log_message', noi lo giriamo alla room 'browser'
-    socket.on('log_message', (message) => {
-        console.log('Log da ESP32:', message);
-        io.to('browser').emit('esp_log', message);
-    });
-
-    socket.on('disconnect', (reason) => {
-        console.log(`Client disconnesso: ${socket.id} - Motivo: ${reason}`);
+    ws.on('error', (err) => {
+        console.error("Errore WebSocket:", err);
     });
 });
 
 server.listen(PORT, () => {
-    console.log(`🚀 Server ESP32 Bridge in ascolto sulla porta ${PORT}`);
+    console.log(`🚀 Server WebSocket in ascolto sulla porta ${PORT}`);
 });
