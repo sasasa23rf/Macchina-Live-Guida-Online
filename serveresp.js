@@ -36,7 +36,7 @@ wss.on('connection', (ws, req) => {
             }
 
             const msgStr = message.toString();
-            console.log("Messaggio ricevuto:", msgStr);
+            // console.log("Messaggio ricevuto:", msgStr);
 
             // Parsing JSON
             const data = JSON.parse(msgStr);
@@ -60,7 +60,7 @@ wss.on('connection', (ws, req) => {
             // 2. COMANDO DA BROWSER -> ESP32
             else if (data.type === 'command') {
                 if (esp32Socket && esp32Socket.readyState === 1) { // 1 = OPEN
-                    console.log("Inoltro comando a ESP32:", data.payload);
+                    // console.log("Inoltro comando a ESP32:", data.payload);
                     esp32Socket.send(JSON.stringify(data.payload));
                 } else {
                     console.log("⚠️ ESP32 non connesso, impossibile inviare comando");
@@ -69,7 +69,7 @@ wss.on('connection', (ws, req) => {
 
             // 3. LOG/RISPOSTA DA ESP32 -> BROWSER
             else if (data.type === 'log') {
-                console.log("Log da ESP32:", data.payload);
+                // console.log("Log da ESP32:", data.payload);
                 const logMsg = JSON.stringify({ type: 'esp_log', message: data.payload });
                 browsers.forEach(client => {
                     if (client.readyState === 1) {
