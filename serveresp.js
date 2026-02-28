@@ -95,6 +95,18 @@ wss.on('connection', (ws, req) => {
                     }
                 });
             }
+            
+            // 5. DATI POSIZIONE IN TEMPO REALE DA ESP32
+            else if (data.type === 'pos_data') {
+                // Non logghiamo per non intasare
+                // Invia a tutti i browser connessi
+                const posMsg = JSON.stringify({ type: 'pos_data', payload: data.payload });
+                browsers.forEach(client => {
+                    if (client.readyState === 1) {
+                        client.send(posMsg);
+                    }
+                });
+            }
 
         } catch (e) {
             console.error("Errore parsing messaggio:", e);
