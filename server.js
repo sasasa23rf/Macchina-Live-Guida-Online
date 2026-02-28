@@ -16,10 +16,10 @@ const PORT = process.env.PORT || 3000;
 
 // --- CONFIGURAZIONE GLOBALE CONDIVISA ---
 let currentConfig = {
-    target_fps: 50,
-    width: 640,
-    height: 480,
-    jpeg_quality: 50,
+    target_fps: 20,
+    width: 320,
+    height: 240,
+    jpeg_quality: 45,
     frame_delay: 0
 };
 
