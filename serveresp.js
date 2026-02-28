@@ -17,6 +17,8 @@ let esp32Socket = null;
 const browsers = new Set();
 // Store last known steering data
 let currentSteeringData = { center: 0, left: 0, right: 0 };
+// Store monitor status
+let currentMonitorStatus = { enabled: false, interval: 500 };
 
 // Funzione Heartbeat
 function heartbeat() {
@@ -58,12 +60,29 @@ wss.on('connection', (ws, req) => {
                     console.log("✅ Browser Identificato e registrato");
                     // Invia subito i dati dello sterzo correnti al nuovo browser
                     ws.send(JSON.stringify({ type: 'steering_data', payload: currentSteeringData }));
+                    // Invia stato monitoraggio
+                    ws.send(JSON.stringify({ type: 'monitor_status', payload: currentMonitorStatus }));
                 }
             }
             
             // 2. COMANDO DA BROWSER -> ESP32
             else if (data.type === 'command') {
                 if (esp32Socket && esp32Socket.readyState === 1) { // 1 = OPEN
+                    // Se è un comando monitoraggio, salviamo lo stato
+                    if (data.payload.action === 'SET_POS_MONITOR') {
+                        currentMonitorStatus.enabled = data.payload.enabled;
+                        currentMonitorStatus.interval = data.payload.interval;
+                        console.log("Stato Monitor salvato:", currentMonitorStatus);
+                        
+                        // Propaghiamo l'aggiornamento a tutti gli altri browser per tenerli sincronizzati
+                        const syncMsg = JSON.stringify({ type: 'monitor_status', payload: currentMonitorStatus });
+                        browsers.forEach(client => {
+                            if (client !== ws && client.readyState === 1) {
+                                client.send(syncMsg);
+                            }
+                        });
+                    }
+
                     // console.log("Inoltro comando a ESP32:", data.payload);
                     esp32Socket.send(JSON.stringify(data.payload));
                 } else {
