@@ -19,7 +19,8 @@ let currentConfig = {
     target_fps: 50,
     width: 640,
     height: 480,
-    jpeg_quality: 50
+    jpeg_quality: 50,
+    frame_delay: 0
 };
 
 app.get('/', (req, res) => {
