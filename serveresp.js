@@ -15,6 +15,8 @@ const wss = new WebSocketServer({ server });
 
 let esp32Socket = null;
 const browsers = new Set();
+// Store last known steering data
+let currentSteeringData = { center: 0, left: 0, right: 0 };
 
 // Funzione Heartbeat
 function heartbeat() {
@@ -54,6 +56,8 @@ wss.on('connection', (ws, req) => {
                 } else if (data.client === 'browser') {
                     browsers.add(ws);
                     console.log("✅ Browser Identificato e registrato");
+                    // Invia subito i dati dello sterzo correnti al nuovo browser
+                    ws.send(JSON.stringify({ type: 'steering_data', payload: currentSteeringData }));
                 }
             }
             
@@ -74,6 +78,20 @@ wss.on('connection', (ws, req) => {
                 browsers.forEach(client => {
                     if (client.readyState === 1) {
                         client.send(logMsg);
+                    }
+                });
+            }
+            
+            // 4. DATI STERZO DA ESP32
+            else if (data.type === 'steering_data') {
+                console.log("Dati sterzo aggiornati:", data.payload);
+                currentSteeringData = data.payload;
+                
+                // Broadcast a tutti i browser
+                const updateMsg = JSON.stringify({ type: 'steering_data', payload: currentSteeringData });
+                browsers.forEach(client => {
+                    if (client.readyState === 1) {
+                        client.send(updateMsg);
                     }
                 });
             }
