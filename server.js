@@ -34,8 +34,9 @@ io.on('connection', (socket) => {
     socket.emit('config_updated', currentConfig);
 
     // 2. STREAMING VIDEO (Raspberry -> Browser) - Binario
-    socket.on('video_frame', (data) => {
+    socket.on('video_frame', (data, callback) => {
         socket.broadcast.emit('stream_display', data);
+        if (callback) callback(); // ACK al mittente
     });
 
     // 3. CONFIGURAZIONE (Browser <-> Server <-> Raspberry)
