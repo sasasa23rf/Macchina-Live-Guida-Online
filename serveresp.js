@@ -20,6 +20,14 @@ let currentSteeringData = { center: 0, left: 0, right: 0 };
 // Store monitor status
 let currentMonitorStatus = { enabled: false, interval: 500 };
 
+// Store Cam Settings
+let camSettings = {
+    '1': { speed: 70, duration: 100 },
+    '2': { speed: 110, duration: 100 },
+    '3': { speed: 60, duration: 100 },
+    '4': { speed: 120, duration: 100 }
+};
+
 // Funzione Heartbeat
 function heartbeat() {
   this.isAlive = true;
@@ -62,6 +70,8 @@ wss.on('connection', (ws, req) => {
                     ws.send(JSON.stringify({ type: 'steering_data', payload: currentSteeringData }));
                     // Invia stato monitoraggio
                     ws.send(JSON.stringify({ type: 'monitor_status', payload: currentMonitorStatus }));
+                    // Invia impostazioni cam
+                    ws.send(JSON.stringify({ type: 'cam_settings', payload: camSettings }));
                 }
             }
             
@@ -81,6 +91,21 @@ wss.on('connection', (ws, req) => {
                                 client.send(syncMsg);
                             }
                         });
+                    }
+
+                    // Se è un comando cam, salviamo i settings
+                    if (data.payload.action === 'KEY_DOWN' && ['1', '2', '3', '4'].includes(data.payload.key)) {
+                        if (data.payload.speed && data.payload.duration) {
+                            camSettings[data.payload.key] = {
+                                speed: data.payload.speed,
+                                duration: data.payload.duration
+                            };
+                            console.log(`Cam Setting Saved [Key ${data.payload.key}]:`, camSettings[data.payload.key]);
+                            
+                            // Opzionale: propagare agli altri browser se volessimo sync real-time dei menu
+                            // const syncCam = JSON.stringify({ type: 'cam_settings', payload: camSettings });
+                            // browsers.forEach(client => { if(client !== ws && client.readyState === 1) client.send(syncCam); });
+                        }
                     }
 
                     // console.log("Inoltro comando a ESP32:", data.payload);
