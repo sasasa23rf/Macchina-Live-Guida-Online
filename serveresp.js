@@ -93,8 +93,8 @@ wss.on('connection', (ws, req) => {
                         });
                     }
 
-                    // Se è un comando cam, salviamo i settings
-                    if (data.payload.action === 'KEY_DOWN' && ['1', '2', '3', '4'].includes(data.payload.key)) {
+                    // Se è un comando cam (KEY_DOWN) o aggiornamento settings (UPDATE_CAM_SETTINGS), salviamo i settings
+                    if ((data.payload.action === 'KEY_DOWN' || data.payload.action === 'UPDATE_CAM_SETTINGS') && ['1', '2', '3', '4'].includes(data.payload.key)) {
                         if (data.payload.speed && data.payload.duration) {
                             camSettings[data.payload.key] = {
                                 speed: data.payload.speed,
@@ -102,9 +102,13 @@ wss.on('connection', (ws, req) => {
                             };
                             console.log(`Cam Setting Saved [Key ${data.payload.key}]:`, camSettings[data.payload.key]);
                             
-                            // Opzionale: propagare agli altri browser se volessimo sync real-time dei menu
-                            // const syncCam = JSON.stringify({ type: 'cam_settings', payload: camSettings });
-                            // browsers.forEach(client => { if(client !== ws && client.readyState === 1) client.send(syncCam); });
+                            // Se è un UPDATE_CAM_SETTINGS, propaghiamo agli altri browser per sync
+                            if (data.payload.action === 'UPDATE_CAM_SETTINGS') {
+                                const syncCam = JSON.stringify({ type: 'cam_settings', payload: camSettings });
+                                browsers.forEach(client => { 
+                                    if(client !== ws && client.readyState === 1) client.send(syncCam); 
+                                });
+                            }
                         }
                     }
 
