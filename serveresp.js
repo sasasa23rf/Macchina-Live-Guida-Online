@@ -25,7 +25,8 @@ let camSettings = {
     '1': { speed: 70, duration: 100 },
     '2': { speed: 110, duration: 100 },
     '3': { speed: 60, duration: 100 },
-    '4': { speed: 120, duration: 100 }
+    '4': { speed: 120, duration: 100 },
+    'repeatInterval': 500 // Nuovo parametro globale
 };
 
 // Funzione Heartbeat
@@ -109,6 +110,20 @@ wss.on('connection', (ws, req) => {
                                     if(client !== ws && client.readyState === 1) client.send(syncCam); 
                                 });
                             }
+                        }
+                    }
+
+                    // Se è un UPDATE_REPEAT_INTERVAL
+                    if (data.payload.action === 'UPDATE_REPEAT_INTERVAL') {
+                        if (data.payload.interval) {
+                            camSettings.repeatInterval = data.payload.interval;
+                            console.log(`Cam Repeat Interval Saved: ${camSettings.repeatInterval}ms`);
+                            
+                            // Propaghiamo sync
+                            const syncCam = JSON.stringify({ type: 'cam_settings', payload: camSettings });
+                            browsers.forEach(client => { 
+                                if(client !== ws && client.readyState === 1) client.send(syncCam); 
+                            });
                         }
                     }
 
