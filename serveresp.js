@@ -29,6 +29,34 @@ let camSettings = {
     'repeatInterval': 500 // Nuovo parametro globale
 };
 
+// Store Control Settings (Nuovo)
+let controlSettings = {
+    // Monitor Posizione
+    posMonitorEnabled: false,
+    posMonitorInterval: 500,
+    
+    // Destra - Sinistra
+    adStepValue: 50,
+    adStepEnabled: true,
+    
+    // Partenza W Custom
+    wStartEnabled: true,
+    wStartValue: 200,
+    wWheelStep: 50,
+    
+    // Limite Max W
+    wMaxEnabled: false,
+    wMaxValue: 1023,
+    
+    // Valore Tasto S
+    sValue: 200,
+
+    // Sterzata Controllata Velocità
+    speedSteeringEnabled: false,
+    speedSteeringVal: 10,
+    speedSteeringThreshold: 500
+};
+
 // Funzione Heartbeat
 function heartbeat() {
   this.isAlive = true;
@@ -73,6 +101,8 @@ wss.on('connection', (ws, req) => {
                     ws.send(JSON.stringify({ type: 'monitor_status', payload: currentMonitorStatus }));
                     // Invia impostazioni cam
                     ws.send(JSON.stringify({ type: 'cam_settings', payload: camSettings }));
+                    // Invia impostazioni controlli (Nuovo)
+                    ws.send(JSON.stringify({ type: 'control_settings', payload: controlSettings }));
                 }
             }
             
@@ -125,6 +155,19 @@ wss.on('connection', (ws, req) => {
                                 if(client !== ws && client.readyState === 1) client.send(syncCam); 
                             });
                         }
+                    }
+
+                    // Se è un UPDATE_CONTROL_SETTINGS
+                    if (data.payload.action === 'UPDATE_CONTROL_SETTINGS') {
+                        // Merge parziale: aggiorniamo solo le chiavi inviate
+                        controlSettings = { ...controlSettings, ...data.payload.settings };
+                        console.log("Control Settings Updated:", controlSettings);
+                        
+                        // Propaghiamo sync
+                        const syncCtrl = JSON.stringify({ type: 'control_settings', payload: controlSettings });
+                        browsers.forEach(client => { 
+                            if(client !== ws && client.readyState === 1) client.send(syncCtrl); 
+                        });
                     }
 
                     // console.log("Inoltro comando a ESP32:", data.payload);
