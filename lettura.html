@@ -87,8 +87,14 @@
         let wsUrl = params.get('ws');
         
         if (!wsUrl) {
-            // Se non c'è parametro, usa il server Render di default
-            wsUrl = "wss://lettura-serial-monitor-esp32.onrender.com";
+            // Se caricato via HTTP/HTTPS, usa lo stesso host come WebSocket
+            if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                wsUrl = protocol + '//' + window.location.host;
+            } else {
+                // Fallback per file locale
+                wsUrl = "wss://lettura-serial-monitor-esp32.onrender.com";
+            }
         }
 
         const logContainer = document.getElementById('log-container');
