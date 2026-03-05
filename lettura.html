@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lettura Log ESP32</title>
+    <style>
+        body {
+            background-color: #1e1e1e;
+            color: #00ff00;
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            color: #fff;
+            border-bottom: 1px solid #444;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+
+        #log-container {
+            flex-grow: 1;
+            background-color: #000;
+            border: 1px solid #333;
+            padding: 10px;
+            overflow-y: auto;
+            white-space: pre-wrap; /* Mantiene gli a capo */
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .log-entry {
+            margin-bottom: 2px;
+            border-bottom: 1px solid #111;
+        }
+
+        .status-bar {
+            margin-top: 10px;
+            padding: 5px;
+            background-color: #333;
+            color: #fff;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .connected { color: #0f0; }
+        .disconnected { color: #f00; }
+        
+        #clear-btn {
+            background: #444;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        #clear-btn:hover { background: #666; }
+    </style>
+</head>
+<body>
+
+    <h1>ESP32 Serial Monitor Remoto</h1>
+    
+    <div id="log-container">In attesa di connessione...</div>
+
+    <div class="status-bar">
+        <span id="connection-status" class="disconnected">DISCONNESSO</span>
+        <button id="clear-btn">Pulisci Log</button>
+    </div>
+
+    <script>
+        // CONFIGURAZIONE: Inserisci qui l'URL del tuo server Render quando sarà pronto
+        // Esempio: 'wss://tuo-app-name.onrender.com'
+        // Per ora usa localhost se testi in locale
+        // const WS_URL = 'wss://tuo-server-render.com'; 
+        // Oppure chiedi all'utente di inserirlo via prompt se preferisci, ma qui lo hardcodiamo o usiamo query param
+        
+        // Cerchiamo di prendere l'URL dalla query string ?ws=... altrimenti usiamo un default o prompt
+        const params = new URLSearchParams(window.location.search);
+        let wsUrl = params.get('ws');
+        
+        if (!wsUrl) {
+            // Default placeholder, l'utente dovrà modificarlo nel codice o passarlo via URL
+            // wsUrl = 'ws://localhost:8080'; 
+            wsUrl = prompt("Inserisci l'URL del WebSocket Server (es. wss://tuo-app.onrender.com):", "ws://localhost:8080");
+        }
+
+        const logContainer = document.getElementById('log-container');
+        const statusSpan = document.getElementById('connection-status');
+        const clearBtn = document.getElementById('clear-btn');
+
+        let socket;
+
+        function connect() {
+            if(!wsUrl) return;
+
+            socket = new WebSocket(wsUrl);
+
+            socket.onopen = () => {
+                statusSpan.textContent = "CONNESSO a " + wsUrl;
+                statusSpan.className = "connected";
+                addLog(">>> Connessione stabilita al server <<<");
+            };
+
+            socket.onmessage = (event) => {
+                addLog(event.data);
+            };
+
+            socket.onclose = () => {
+                statusSpan.textContent = "DISCONNESSO - Riprovo tra 3s...";
+                statusSpan.className = "disconnected";
+                setTimeout(connect, 3000);
+            };
+
+            socket.onerror = (error) => {
+                console.error("WebSocket Error:", error);
+                statusSpan.textContent = "ERRORE CONNESSIONE";
+                statusSpan.className = "disconnected";
+            };
+        }
+
+        function addLog(text) {
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            
+            // Aggiungi timestamp opzionale
+            const now = new Date();
+            const time = now.toLocaleTimeString() + '.' + String(now.getMilliseconds()).padStart(3, '0');
+            
+            entry.textContent = `[${time}] ${text}`;
+            logContainer.appendChild(entry);
+            
+            // Auto-scroll in basso
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            // Limita il numero di righe per evitare crash browser (es. ultime 1000 righe)
+            while(logContainer.children.length > 1000) {
+                logContainer.removeChild(logContainer.firstChild);
+            }
+        }
+
+        clearBtn.addEventListener('click', () => {
+            logContainer.innerHTML = '';
+        });
+
+        if(wsUrl) connect();
+        else addLog("Nessun URL WebSocket fornito. Ricarica la pagina.");
+
+    </script>
+</body>
+</html>
