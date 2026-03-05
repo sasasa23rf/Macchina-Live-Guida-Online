@@ -87,9 +87,8 @@
         let wsUrl = params.get('ws');
         
         if (!wsUrl) {
-            // Default placeholder, l'utente dovrà modificarlo nel codice o passarlo via URL
-            // wsUrl = 'ws://localhost:8080'; 
-            wsUrl = prompt("Inserisci l'URL del WebSocket Server (es. wss://tuo-app.onrender.com):", "ws://localhost:8080");
+            // Se non c'è parametro, usa il server Render di default
+            wsUrl = "wss://lettura-serial-monitor-esp32.onrender.com";
         }
 
         const logContainer = document.getElementById('log-container');
