@@ -108,6 +108,16 @@ wss.on('connection', (ws, req) => {
             
             // 2. COMANDO DA BROWSER -> ESP32
             else if (data.type === 'command') {
+                if (data.payload.action === 'UPDATE_CONTROL_SETTINGS') {
+                    controlSettings = { ...controlSettings, ...data.payload.settings };
+                    console.log("Control Settings Updated:", controlSettings);
+                    
+                    const syncCtrl = JSON.stringify({ type: 'control_settings', payload: controlSettings });
+                    browsers.forEach(client => { 
+                        if(client !== ws && client.readyState === 1) client.send(syncCtrl); 
+                    });
+                }
+
                 if (esp32Socket && esp32Socket.readyState === 1) { // 1 = OPEN
                     // Se è un comando monitoraggio, salviamo lo stato
                     if (data.payload.action === 'SET_POS_MONITOR') {
@@ -155,19 +165,6 @@ wss.on('connection', (ws, req) => {
                                 if(client !== ws && client.readyState === 1) client.send(syncCam); 
                             });
                         }
-                    }
-
-                    // Se è un UPDATE_CONTROL_SETTINGS
-                    if (data.payload.action === 'UPDATE_CONTROL_SETTINGS') {
-                        // Merge parziale: aggiorniamo solo le chiavi inviate
-                        controlSettings = { ...controlSettings, ...data.payload.settings };
-                        console.log("Control Settings Updated:", controlSettings);
-                        
-                        // Propaghiamo sync
-                        const syncCtrl = JSON.stringify({ type: 'control_settings', payload: controlSettings });
-                        browsers.forEach(client => { 
-                            if(client !== ws && client.readyState === 1) client.send(syncCtrl); 
-                        });
                     }
 
                     // console.log("Inoltro comando a ESP32:", data.payload);
