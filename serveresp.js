@@ -18,7 +18,7 @@ const browsers = new Set();
 // Store last known steering data
 let currentSteeringData = { center: 0, left: 0, right: 0 };
 // Store monitor status
-let currentMonitorStatus = { enabled: false, interval: 500 };
+let currentMonitorStatus = { enabled: true, interval: 100 };
 
 // Store Cam Settings
 let camSettings = {
@@ -32,8 +32,8 @@ let camSettings = {
 // Store Control Settings (Nuovo)
 let controlSettings = {
     // Monitor Posizione
-    posMonitorEnabled: false,
-    posMonitorInterval: 500,
+    posMonitorEnabled: true,
+    posMonitorInterval: 100,
     
     // Destra - Sinistra
     adStepValue: 50,
@@ -41,7 +41,7 @@ let controlSettings = {
     
     // Partenza W Custom
     wStartEnabled: true,
-    wStartValue: 200,
+    wStartValue: 300,
     wWheelStep: 50,
     
     // Limite Max W
@@ -49,12 +49,12 @@ let controlSettings = {
     wMaxValue: 1023,
     
     // Valore Tasto S
-    sValue: 200,
+    sValue: 300,
 
     // Sterzata Controllata Velocità
-    speedSteeringEnabled: false,
-    speedSteeringVal: 10,
-    speedSteeringThreshold: 500
+    speedSteeringEnabled: true,
+    speedSteeringVal: 20,
+    speedSteeringThreshold: 700
 };
 
 // Funzione Heartbeat
